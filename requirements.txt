@@ -1,0 +1,3 @@
+Brotli==1.0.9
+-e git+ssh://git@github.com/fonttools/fonttools.git@4742960f7f7eea53412479a42f46ca11aa81441a#egg=fonttools
+skia-pathops==0.7.2

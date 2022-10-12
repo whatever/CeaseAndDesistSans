@@ -110,21 +110,25 @@ if __name__ == "__main__":
     options.recalc_max_content = True
     options.legacy_kern = True
 
-    fname1 = "SquareSansText-Regular.woff2"
-    font1 = strip(fname1, unicode_lists[0], options)
+    fnames = [
+        "fonts/SquareSansText-Regular.woff2",
+        "fonts/Speedee-Regular.woff2",
+        "fonts/AdihausDIN-Regular.woff2",
+    ]
 
-    fname2 = "Roboto-Medium.ttf"
-    fname2 = "Roboto-Medium.ttf"
-    font2 = strip(fname2, unicode_lists[1], options)
+    unicode_lists = [list() for _ in fnames]
 
-    scale(font1)
-    scale(font2)
+    for i in range(0x7F+1):
+        k = random.randint(0, len(unicode_lists)-1)
+        unicode_lists[k].append("U+00" + hex(i)[2:].upper())
 
-    out_file = "CeaseAndDesistSans.woff2"
-    ftsubset.save_font(font1, "font1.woff", options)
-    ftsubset.save_font(font2, "font2.woff", options)
-
-    font1.close()
-    font2.close()
-
-    # fontTools.subset.load_font(fname, options)
+    fonts = [
+        strip(fnames[i], unicode_lists[i], options)
+        for i in range(len(fnames))
+    ]
+    
+    for i in range(len(fonts)):
+        font = fonts[i]
+        scale(font)
+        ftsubset.save_font(font, f"font{i}.woff2", options)
+        font.close()

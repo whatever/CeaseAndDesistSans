@@ -1,1 +1,2 @@
-./gen.py && pyftmerge font1.woff font2.woff && mv merged.ttf ok.ttf
+#!/bin/sh
+./gen.py && pyftmerge *.woff2 && mv merged.ttf ok.ttf

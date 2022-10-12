@@ -3,15 +3,22 @@
 # import fontTools.ttLib.woff2
 # from fontTools.ttLib.woff2 import (WOFF2Reader)
 
+import os
 import random
+
 import fontTools.subset as ftsubset
 import fontTools.merge as ftmerge
 
 from fontTools.misc.transform import Transform
-
-from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
+
+def get_unicode_chars(font):
+    print([
+        (a, b)
+        for table in font.get("cmap").tables
+        for a, b in table.cmap.items()
+    ])
 
 def strip(fontfile, unicodes, options):
 
@@ -23,12 +30,10 @@ def strip(fontfile, unicodes, options):
         lazy=False,
     )
 
-
     gids = []
     glyphs = []
     text = ""
     unicodes = ftsubset.parse_unicodes(",".join(unicodes))
-
 
     subsetter = ftsubset.Subsetter(options=options)
 
@@ -50,9 +55,6 @@ def scale(font, size=2048):
 
     s = final/head_table.unitsPerEm
 
-    # print("unitsPerEm =", head_table.unitsPerEm)
-    # print("s =", s)
-
     glyphPen = TTGlyphPen(font.getGlyphSet())
     transformPen = TransformPen(glyphPen, Transform().scale(s, s))
     head_table.unitsPerEm = final
@@ -65,7 +67,6 @@ def scale(font, size=2048):
             continue
 
         glyph.draw(transformPen, font['glyf'])
-
 
         old = font['glyf'][glyphName]
         now = glyphPen.glyph()
@@ -111,9 +112,8 @@ if __name__ == "__main__":
     options.legacy_kern = True
 
     fnames = [
-        "fonts/SquareSansText-Regular.woff2",
-        "fonts/Speedee-Regular.woff2",
-        "fonts/AdihausDIN-Regular.woff2",
+        f"fonts/{fname}"
+        for fname in os.listdir("./fonts/")
     ]
 
     unicode_lists = [list() for _ in fnames]
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     for i in range(0x7F+1):
         k = random.randint(0, len(unicode_lists)-1)
         unicode_lists[k].append("U+00" + hex(i)[2:].upper())
-
+    
     fonts = [
         strip(fnames[i], unicode_lists[i], options)
         for i in range(len(fnames))
@@ -132,3 +132,6 @@ if __name__ == "__main__":
         scale(font)
         ftsubset.save_font(font, f"font{i}.woff2", options)
         font.close()
+
+    # Bugs
+    # 1. 9 drops too much when it is "UberMove"

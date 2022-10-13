@@ -3,8 +3,10 @@
 # import fontTools.ttLib.woff2
 # from fontTools.ttLib.woff2 import (WOFF2Reader)
 
+import argparse
 import os
 import random
+import tempfile
 
 import fontTools.subset as ftsubset
 import fontTools.merge as ftmerge
@@ -21,7 +23,6 @@ def get_unicode_chars(font):
     ])
 
 def strip(fontfile, unicodes, options):
-
 
     font = ftsubset.load_font(
         fontfile,
@@ -50,6 +51,9 @@ def strip(fontfile, unicodes, options):
 
 
 def scale(font, size=2048):
+    """
+    ...
+    """
     final = size
     head_table = font.get("head")
 
@@ -86,18 +90,15 @@ def scale(font, size=2048):
         # glyph.recalcBounds(font['glyf'])
 
 if __name__ == "__main__":
-    fname = "SquareSansText-Regular.woff2"
 
-    """
-    with open(fname, "rb") as fi:
-        reader = WOFF2Reader(fi)
-        print(dir(reader.ttFont))
-    """
+    parser = argparse.ArgumentParser("Cease and Desist Sans.woff2 generator")
+    parser.add_argument("fnames", nargs="+", help="list of file names to merge")
+    parser.add_argument("--out-file", default="CeaseAndDesistSans-Regular.woff2", help="path to file name")
+    args = parser.parse_args()
 
-    # pyftsubset OracleSansVF.woff2 --unicodes=U+004D --output-file=CeaseAndDesistSans.woff2   
+    fnames = args.fnames
+    out_file = args.out_file
 
-
-    
     unicode_lists = [[], []]
 
     for i in range(0x7F+1):
@@ -111,11 +112,6 @@ if __name__ == "__main__":
     options.recalc_max_content = True
     options.legacy_kern = True
 
-    fnames = [
-        f"fonts/{fname}"
-        for fname in os.listdir("./fonts/")
-    ]
-
     unicode_lists = [list() for _ in fnames]
 
     for i in range(0x7F+1):
@@ -126,12 +122,35 @@ if __name__ == "__main__":
         strip(fnames[i], unicode_lists[i], options)
         for i in range(len(fnames))
     ]
-    
+
+    temp_font_files = []
+
     for i in range(len(fonts)):
+        fi = tempfile.NamedTemporaryFile(prefix="font-", suffix=".woff2")
+        fi.close()
+        fname = fi.name
+
         font = fonts[i]
         scale(font)
-        ftsubset.save_font(font, f"font{i}.woff2", options)
+
+        ftsubset.save_font(font, fname, options)
+        temp_font_files.append(fname)
         font.close()
 
-    # Bugs
-    # 1. 9 drops too much when it is "UberMove"
+
+    # MERGE
+    # MERGE
+    # MERGE
+
+    merger = ftmerge.Merger(options)
+    font = merger.merge(temp_font_files)
+    font.flavor = "woff2"
+    font.save(out_file)
+    font.close()
+
+    # CLEAN
+    # CLEAN
+    # CLEAN
+
+    for fname in temp_font_files:
+        os.remove(fname)

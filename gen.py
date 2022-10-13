@@ -95,24 +95,25 @@ def scale(font, size=2048):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser("Cease and Desist Sans.woff2 generator")
+    # Parse arguments
 
+    parser = argparse.ArgumentParser("Cease and Desist Sans.woff2 generator")
     parser.add_argument(
         "fnames",
         nargs="+",
         help="list of file names to merge",
     )
-
     parser.add_argument(
         "--out-file",
         default="CeaseAndDesistSans-Regular.woff2",
         help="path to file name",
     )
-
     args = parser.parse_args()
 
     fnames = args.fnames
     out_file = args.out_file
+
+    # Set options for fonttools tools
 
     options = ftsubset.Options()
     options.recalc_bounds = True
@@ -120,10 +121,14 @@ if __name__ == "__main__":
     options.recalc_max_content = True
     options.legacy_kern = True
 
+    # Load fonts
+
     fonts = [
         ftsubset.load_font(name, options, dontLoadGlyphNames=False, lazy=False)
         for name in fnames
     ]
+
+    # Get a set of universal unicode characters for a font
 
     all_unicodes = [
         get_unicode_chars(font)
@@ -135,6 +140,8 @@ if __name__ == "__main__":
     for unis in all_unicodes:
         int_unicodes.intersection_update(unis)
 
+    # Convert to U+???? strings
+
     shared_unicodes = []
 
     for code, _ in sorted(int_unicodes):
@@ -142,15 +149,19 @@ if __name__ == "__main__":
         val = "U+" + "0"*(4-len(val)) + val
         shared_unicodes.append(val)
 
-    unicode_lists = [[] for _ in fnames]
+    # Generate a list of unicode characters for each font
+
+    unicode_lists = [[] for _ in fonts]
 
     for uni in shared_unicodes:
         k = random.randint(0, len(unicode_lists)-1)
         unicode_lists[k].append(uni)
 
+    # Subset all fonts
+
     fonts = [
-        strip(font, unicode_lists[i], options)
-        for i, font in enumerate(fonts)
+        strip(font, unicode_list, options)
+        for font, unicode_list in zip(fonts, unicode_lists)
     ]
 
     temp_font_files = []
@@ -163,7 +174,7 @@ if __name__ == "__main__":
         temp_font_files.append(fname)
         ttfont.close()
 
-    # MERGE
+    # Merge
 
     merger = ftmerge.Merger(options)
     font = merger.merge(temp_font_files)
@@ -171,7 +182,7 @@ if __name__ == "__main__":
     font.save(out_file)
     font.close()
 
-    # CLEAN
+    # Clean
 
     for fname in temp_font_files:
         os.remove(fname)

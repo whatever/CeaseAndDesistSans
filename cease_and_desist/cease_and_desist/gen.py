@@ -20,6 +20,22 @@ from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 
+OPTIONS = ftsubset.Options()
+OPTIONS.recalc_bounds = True
+OPTIONS.recalc_average_width = True
+OPTIONS.recalc_max_content = True
+OPTIONS.legacy_kern = True
+
+
+def load_font(fname):
+    return ftsubset.load_font(
+        fname,
+        OPTIONS,
+        dontLoadGlyphNames=False,
+        lazy=False,
+    )
+
+
 def get_unicode_chars(font):
     """Return a set of tuples representing a unicode character."""
     return {
@@ -90,43 +106,80 @@ def scale(font, size=2048):
         glyph = font['glyf'][glyph_name]
         glyph.trim()
         glyph.removeHinting()
-        # glyph.recalcBounds(font['glyf'])
 
 
-if __name__ == "__main__":
+class CeaseAndDesistSansGenerator(object):
+    """
+    CeaseAndDesistSansGenerator
+    """
 
-    # Parse arguments
+    def __init__(self, fonts, seed=0, options=OPTIONS):
+        """Construct a CeaseAndDesistSansGenerator"""
+        self.fonts = fonts
+        self.seed = seed
+        self.options = options
 
-    parser = argparse.ArgumentParser("Cease and Desist Sans.woff2 generator")
-    parser.add_argument(
-        "fnames",
-        nargs="+",
-        help="list of file names to merge",
-    )
-    parser.add_argument(
-        "--out-file",
-        default="CeaseAndDesistSans-Regular.woff2",
-        help="path to file name",
-    )
-    args = parser.parse_args()
+        self.unicodes = intersection_unicodes(self.fonts)
 
-    fnames = args.fnames
-    out_file = args.out_file
+        self.unicode_lists = [[] for _ in self.fonts]
 
-    # Set options for fonttools tools
+        for uni in self.unicodes:
+            i = random.randint(0, len(self.unicode_lists)-1)
+            self.unicode_lists[i].append(uni)
 
-    options = ftsubset.Options()
-    options.recalc_bounds = True
-    options.recalc_average_width = True
-    options.recalc_max_content = True
-    options.legacy_kern = True
+        self.fonts = [
+            strip(font, unicode_list, options)
+            for font, unicode_list in zip(self.fonts, self.unicode_lists)
+        ]
 
-    # Load fonts
+        self.font = self.merge()
 
-    fonts = [
-        ftsubset.load_font(name, options, dontLoadGlyphNames=False, lazy=False)
-        for name in fnames
-    ]
+
+    def __del__(self):
+        for fname in self.temp_font_files:
+            os.remove(fname)
+
+    def merge(self):
+        """..."""
+
+        temp_font_files = []
+
+        for ttfont in self.fonts:
+            with tempfile.NamedTemporaryFile(prefix="", suffix=".woff2") as fi:
+                fname = fi.name
+            scale(ttfont)
+            ftsubset.save_font(ttfont, fname, self.options)
+            temp_font_files.append(fname)
+            ttfont.close()
+
+        merger = ftmerge.Merger(self.options)
+        font = merger.merge(temp_font_files)
+        font.flavor = "woff2"
+        font.close()
+
+        self.temp_font_files = temp_font_files
+
+        return font
+    
+    def save(self, out_file):
+        self.font.save(out_file)
+
+    @staticmethod
+    def _get_unicode_chars(font):
+        """Return a set of tuples representing a unicode character."""
+        return {
+            (a, b)
+            for table in font.get("cmap").tables
+            for a, b in table.cmap.items()
+        }
+
+    def font():
+        """Return a TTFont """
+        return None
+
+
+def intersection_unicodes(fonts):
+    """..."""
 
     # Get a set of universal unicode characters for a font
 
@@ -149,40 +202,4 @@ if __name__ == "__main__":
         val = "U+" + "0"*(4-len(val)) + val
         shared_unicodes.append(val)
 
-    # Generate a list of unicode characters for each font
-
-    unicode_lists = [[] for _ in fonts]
-
-    for uni in shared_unicodes:
-        k = random.randint(0, len(unicode_lists)-1)
-        unicode_lists[k].append(uni)
-
-    # Subset all fonts
-
-    fonts = [
-        strip(font, unicode_list, options)
-        for font, unicode_list in zip(fonts, unicode_lists)
-    ]
-
-    temp_font_files = []
-
-    for ttfont in fonts:
-        with tempfile.NamedTemporaryFile(prefix="", suffix=".woff2") as fi:
-            fname = fi.name
-        scale(ttfont)
-        ftsubset.save_font(ttfont, fname, options)
-        temp_font_files.append(fname)
-        ttfont.close()
-
-    # Merge
-
-    merger = ftmerge.Merger(options)
-    font = merger.merge(temp_font_files)
-    font.flavor = "woff2"
-    font.save(out_file)
-    font.close()
-
-    # Clean
-
-    for fname in temp_font_files:
-        os.remove(fname)
+    return shared_unicodes

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+docker run  -p8080:8080 -v $(pwd)/fonts:/fonts -it $(docker build -q .) /bin/sh

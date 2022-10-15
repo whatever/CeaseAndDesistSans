@@ -54,6 +54,7 @@ setup(
     entry_points={  # Optional
         "console_scripts": [
             "generate-cease-and-desist-sans=cease_and_desist:main",
+            "serve-cease-and-desist-sans=cease_and_desist.server:main",
         ],
     },
 

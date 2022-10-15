@@ -1,4 +1,10 @@
+"""
+ill
+"""
+
+
 import argparse
+import io
 import os.path
 
 from .gen import (
@@ -24,13 +30,16 @@ def index():
     return send_from_directory(DIR, "index.html")
 
 
+@APP.route("/favicon.ico")
+def favicon():
+    return send_from_directory(DIR, "favicon.ico")
+
+
 @APP.route("/CeaseAndDesistSans-Regular.woff2")
 def font():
-    return (
-        "I haven't slept for three days, because that would be too long",
-        200,
-        [("Content-Type", "font/woff2")],
-    )
+    buff = io.BytesIO()
+    GENERATOR.save(buff)
+    return (buff.getvalue(), 200, [])
 
 
 def main():
@@ -42,6 +51,7 @@ def main():
             )
     args = parser.parse_args()
 
+    global GENERATOR
     GENERATOR = CeaseAndDesistSansGenerator([
         load_font(name)
         for name in args.fnames

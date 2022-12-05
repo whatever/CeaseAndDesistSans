@@ -4,13 +4,16 @@
 You could die
 """
 
-# import fontTools.ttLib.woff2
-# from fontTools.ttLib.woff2 import (WOFF2Reader)
 
 import argparse
 import os
-import random
 import tempfile
+
+
+from queue import LifoQueue
+from random import Random
+from threading import Thread
+
 
 import fontTools.subset as ftsubset
 import fontTools.merge as ftmerge
@@ -28,6 +31,7 @@ OPTIONS.legacy_kern = True
 
 
 def load_font(fname):
+    """Return a TTFont from a filename."""
     return ftsubset.load_font(
         fname,
         OPTIONS,
@@ -115,6 +119,7 @@ class CeaseAndDesistSansGenerator(object):
 
     def __init__(self, fonts, seed=0, options=OPTIONS):
         """Construct a CeaseAndDesistSansGenerator"""
+
         self.fonts = fonts
         self.seed = seed
         self.options = options
@@ -123,9 +128,7 @@ class CeaseAndDesistSansGenerator(object):
 
         self.unicode_lists = [[] for _ in self.fonts]
 
-        for uni in self.unicodes:
-            i = random.randint(0, len(self.unicode_lists)-1)
-            self.unicode_lists[i].append(uni)
+        self.refresh_font(self.seed)
 
         self.fonts = [
             strip(font, unicode_list, options)
@@ -133,6 +136,20 @@ class CeaseAndDesistSansGenerator(object):
         ]
 
         self.font = self.merge()
+    
+    def refresh_font(self, seed):
+
+        self.seed = seed
+
+        rng = Random(self.seed)
+
+        self.unicode_lists = [[] for _ in self.fonts]
+
+        for uni in self.unicodes:
+            i = rng.randint(0, len(self.unicode_lists)-1)
+            self.unicode_lists[i].append(uni)
+
+        pass
 
 
     def __del__(self):
@@ -140,7 +157,7 @@ class CeaseAndDesistSansGenerator(object):
             os.remove(fname)
 
     def merge(self):
-        """..."""
+        """Merge all fonts"""
 
         temp_font_files = []
 
@@ -203,3 +220,37 @@ def intersection_unicodes(fonts):
         shared_unicodes.append(val)
 
     return shared_unicodes
+
+
+class CachedValue(object):
+    """
+    CachedValue
+
+    Restock value and serve old value until subthread finished.
+    """
+
+    def __init__(self, fn, args, hits=1, ttl=-1):
+
+        self.value = fn(*args)
+
+        self.queue = LifoQueue()
+
+        def putter():
+            while True:
+                v = fn(*args)
+                self.queue.put(v)
+
+        def getter():
+            while True:
+                v = self.queue.get(block=True)
+                self.value = v
+
+        self.putter_thread = Thread(target=putter)
+        self.putter_thread.start()
+
+        self.getter_thread = Thread(target=getter)
+        self.getter_thread.start()
+
+
+    def get(self):
+        return self.value

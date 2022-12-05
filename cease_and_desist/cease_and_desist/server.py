@@ -1,28 +1,55 @@
 """
-ill
+Serve CeaseAndDesistSans-Reulgar.woff2
 """
 
 
 import argparse
 import io
+import logging
 import os.path
+import random
+import time
+
+
+from flask import Flask, request
+from flask import send_from_directory
+
+
+import gevent
+from gevent.pywsgi import WSGIServer
+
 
 from .gen import (
+    CachedValue,
     CeaseAndDesistSansGenerator,
     load_font,
 )
 
-from flask import Flask
-from flask import send_from_directory
-
 
 APP = Flask(__name__)
-
-
-GENERATOR = None
+"""..."""
 
 
 DIR = os.path.dirname(__file__)
+"""..."""
+
+
+def generate_font(fnames):
+
+    # Fetch and generate unstripped fonts
+    fonts = [load_font(name) for name in fnames]
+
+    # XXX: Constructor mutates loaded fonts, so we need to complete reload
+    generator = CeaseAndDesistSansGenerator(fonts, time.time())
+
+    buff = io.BytesIO()
+    generator.save(buff)
+
+    return buff
+
+
+VAL = None
+"""Later set as CachedValue after app is used"""
 
 
 @APP.route("/")
@@ -37,25 +64,58 @@ def favicon():
 
 @APP.route("/CeaseAndDesistSans-Regular.woff2")
 def font():
-    buff = io.BytesIO()
-    GENERATOR.save(buff)
-    return (buff.getvalue(), 200, [])
+
+    val = VAL.get().getvalue()
+
+    headers = [
+        ("Cache-Control", "no-cache, no-store, must-revalidate"),
+        ("Pragma", "no-cache"),
+        ("Expires", "0"),
+        ("Content-Type", "font/woff2"),
+    ]
+
+    return (val, 200, headers)
 
 
 def main():
+
     parser = argparse.ArgumentParser("Serve CeaseAndDesistSans-Regular.woff2")
+
     parser.add_argument(
-            "fnames",
-            nargs="+",
-            help="list of file names to merge",
-            )
+        "fnames",
+        nargs="+",
+        help="list of file names to merge",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--port",
+        default=8080,
+        type=int,
+        help="listen on port number",
+    )
+
+    parser.add_argument(
+        "--cache-size",
+        default=1,
+        type=int,
+        help="number of hits before font is refreshed in cache",
+    )
+
+    parser.add_argument(
+        "--cache-ttl",
+        default=69,
+        type=int,
+        help="maximum time before font is refreshed in cache",
+    )
+
     args = parser.parse_args()
 
-    global GENERATOR
-    GENERATOR = CeaseAndDesistSansGenerator([
-        load_font(name)
-        for name in args.fnames
-        ], 0)
+    ftlog = logging.getLogger("fontTools.subset")
+    ftlog.setLevel(logging.ERROR)
 
-    APP.run(host="0.0.0.0", port=8080)
+    global VAL
+    VAL = CachedValue(generate_font, (args.fnames, ))
 
+    server = WSGIServer(('0.0.0.0', 8080), APP)
+    server.serve_forever()

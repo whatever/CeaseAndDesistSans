@@ -1,4 +1,5 @@
-"""A setuptools based setup module.
+"""
+CeaseAndDesistSans
 
 See:
 https://packaging.python.org/guides/distributing-packages-using-setuptools/
@@ -32,8 +33,8 @@ setup(
     install_requires=[
         "Brotli==1.0.9",
         "Flask==2.2.2",
-        "skia-pathops==0.7.2",
-        "fonttools==4.37.4",
+        "gevent==22.10.2",
+        "quart==0.18.3",
     ],
     # extras_require={  # Optional
     #     "dev": ["check-manifest"],
@@ -60,7 +61,7 @@ setup(
 
     # scripts=["scripts/generate-cease-and-desist-sans"],
 
-    project_urls={  # Optional
+    project_urls={
         # "Bug Reports": "https://github.com/pypa/sampleproject/issues",
         # "Funding": "https://donate.pypi.org",
         # "Say Thanks!": "http://saythanks.io/to/example",

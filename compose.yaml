@@ -6,7 +6,10 @@ services:
       - "8081:8080"
     volumes:
       - ./fonts:/tmp/fonts
-    cpu_count: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
 
 volumes:
   fonts:

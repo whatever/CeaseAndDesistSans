@@ -75,6 +75,7 @@ def font():
         ("Pragma", "no-cache"),
         ("Expires", "0"),
         ("Content-Type", "font/woff2"),
+        ("ETag", str(hash(val))),
     ]
 
     return (val, 200, headers)

@@ -1,5 +1,6 @@
-*.swp
-__pycache__
 *.egg-info
-fonts/*
+*.swp
+*.tar.gz
+__pycache__
 bad-fonts/*
+fonts/*

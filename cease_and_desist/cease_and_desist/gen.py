@@ -245,11 +245,16 @@ class CachedValue(object):
                 v = self.queue.get(block=True)
                 self.value = v
 
-        self.putter_thread = Thread(target=putter)
+        self.putter_thread = Thread(target=putter, daemon=True)
         self.putter_thread.start()
 
-        self.getter_thread = Thread(target=getter)
+        self.getter_thread = Thread(target=getter, daemon=True)
         self.getter_thread.start()
+
+
+    def close(self):
+        self.putter_thread.kill()
+        self.gettter_thread.kill()
 
 
     def get(self):

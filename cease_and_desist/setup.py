@@ -33,6 +33,7 @@ setup(
     install_requires=[
         "Brotli==1.0.9",
         "Flask==2.2.2",
+        "fonttools==4.38.0",
         "gevent==22.10.2",
         "quart==0.18.3",
     ],

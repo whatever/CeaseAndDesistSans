@@ -8,6 +8,8 @@ import io
 import logging
 import os.path
 import random
+import signal
+import sys
 import time
 
 
@@ -16,6 +18,7 @@ from flask import send_from_directory
 
 
 import gevent
+import gevent.signal
 from gevent.pywsgi import WSGIServer
 
 
@@ -116,6 +119,11 @@ def main():
 
     global VAL
     VAL = CachedValue(generate_font, (args.fnames, ))
+
+    def _keyboard_interrupt_handler(signum, frame):
+        raise SystemExit
+
+    signal.signal(signal.SIGINT, _keyboard_interrupt_handler)
 
     server = WSGIServer(('0.0.0.0', 8080), APP)
     server.serve_forever()

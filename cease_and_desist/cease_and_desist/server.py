@@ -114,6 +114,13 @@ def main():
 
     args = parser.parse_args()
 
+    print(f"""
+    font names ...... {", ".join(args.fnames)}
+    port ............ {args.port}
+    cache-size ...... {args.cache_size}
+    cache-ttl ....... {args.cache_ttl}
+    """.strip())
+
     ftlog = logging.getLogger("fontTools.subset")
     ftlog.setLevel(logging.ERROR)
 

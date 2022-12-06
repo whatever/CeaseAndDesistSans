@@ -17,6 +17,11 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
+
 setup(
     name="cease_and_desist",
     version="0.4.20", 
@@ -30,13 +35,8 @@ setup(
     # package_dir={"": "cease_and_desist"},  # Optional
     packages=find_packages(where="cease_and_desist"),  # Required
     python_requires=">=3.7, <4",
-    install_requires=[
-        "Brotli==1.0.9",
-        "Flask==2.2.2",
-        "fonttools==4.38.0",
-        "gevent==22.10.2",
-        "quart==0.18.3",
-    ],
+    install_requires=required,
+
     # extras_require={  # Optional
     #     "dev": ["check-manifest"],
     #     "test": ["coverage"],
